@@ -12,16 +12,15 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <!-- SheetJS -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
-<!-- 1. Cargar jsPDF primero -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
-    <!-- 2. FIX: Exponer jsPDF en el scope global para que AutoTable lo reconozca -->
+    <!-- jsPDF & AutoTable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script>
+        // Exponer jsPDF en el scope global para que el plugin AutoTable lo reconozca
         window.jsPDF = window.jspdf.jsPDF;
     </script>
-    
-    <!-- 3. Cargar AutoTable después del fix -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    
     <!-- Bootstrap Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -73,7 +72,7 @@
         /* Header & Cards */
         .app-header { background: var(--bg-card); border-radius: 16px; padding: 20px 30px; margin-bottom: 30px; box-shadow: var(--card-shadow); border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
         .app-header h1 { font-weight: 700; font-size: 1.75rem; margin: 0; color: var(--text-color); display: flex; align-items: center; gap: 12px; }
-        .app-header h1 i { color: #C29B57; font-size: 1.8rem; } /* Dorado Nardo */
+        .app-header h1 i { color: #C29B57; font-size: 1.8rem; } 
         
         .theme-toggle { background: transparent; border: 1px solid var(--border-color); border-radius: 50px; padding: 8px 16px; cursor: pointer; color: var(--text-color); font-weight: 500; font-size: 0.9rem; }
         .theme-toggle:hover { background: var(--border-color); }
@@ -399,8 +398,9 @@
         (function() {
             'use strict';
 
-            let allData = [];
-            let fileNames = [];
+            // 1. CARGAR DATOS DESDE LOCALSTORAGE AL INICIAR
+            let allData = JSON.parse(localStorage.getItem('nardo_db_data')) || [];
+            let fileNames = JSON.parse(localStorage.getItem('nardo_db_files')) || [];
             let ultimaRentabilidad = null;
 
             const COL_MAP = {
@@ -409,6 +409,14 @@
                 precio: ['precio', 'price', 'costo', 'unit price', 'valor'],
                 notas: ['notas', 'descripcion', 'description', 'notes', 'olfativas', 'fragrance']
             };
+
+            // Si ya hay datos almacenados, actualizar la interfaz automáticamente
+            window.addEventListener('DOMContentLoaded', () => {
+                if (allData.length > 0) {
+                    actualizarUI();
+                }
+                document.getElementById('fechaCotizacion').value = new Date().toISOString().split('T')[0];
+            });
 
             function normalizeText(str) {
                 if (!str) return '';
@@ -463,12 +471,18 @@
                             reader.readAsArrayBuffer(file);
                         });
                         allNewData = allNewData.concat(data);
-                        fileNames.push(file.name);
+                        if (!fileNames.includes(file.name)) {
+                            fileNames.push(file.name);
+                        }
                     } catch (err) { console.error(err); }
                 }
                 
                 if(allNewData.length > 0){
                     allData = allData.concat(allNewData);
+                    // 2. GUARDAR DATOS EN LOCALSTORAGE
+                    localStorage.setItem('nardo_db_data', JSON.stringify(allData));
+                    localStorage.setItem('nardo_db_files', JSON.stringify(fileNames));
+                    
                     actualizarUI();
                     document.getElementById('fileInput').value = '';
                 }
@@ -483,7 +497,7 @@
             function renderTable(data) {
                 const tbody = document.getElementById('dataBody');
                 if (!data.length) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No hay datos</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">Sube un archivo para comenzar</td></tr>';
                     return;
                 }
                 tbody.innerHTML = data.map((row, idx) => `<tr>
@@ -562,7 +576,6 @@
                 if(row) document.getElementById('costoFobCotizacion').value = row.precio.toFixed(2);
             });
 
-            // Toggles Modalidad de Logística
             const rbComercial = document.getElementById('modoComercial');
             const rbExpress = document.getElementById('modoExpress');
             const pnlComercial = document.getElementById('panelComercial');
@@ -584,7 +597,6 @@
                 };
             }
 
-            // Motor de Cálculo Unificado (Calcula CIF USD, Landed USD y Landed DOP)
             function calcCostos(precioFOB, logs) {
                 let cifUSD = 0;
                 let landedUSD = 0;
@@ -595,7 +607,7 @@
 
                 if(logs.modo === 'express') {
                     cifUSD = precioFOB + logs.fleteFixo;
-                    landedUSD = cifUSD; // En express, asumimos que el costo fijo lo cubre todo hasta la puerta
+                    landedUSD = cifUSD;
                 } else {
                     cifUSD = precioFOB + logs.flete;
                     const impArancel = cifUSD * logs.arancel;
@@ -612,10 +624,18 @@
             }
 
             document.getElementById('cargarBtn').addEventListener('click', cargarArchivos);
-            document.getElementById('limpiarBtn').addEventListener('click', () => { allData=[]; fileNames=[]; actualizarUI(); });
+            
+            // 3. LIMPIAR LOCALSTORAGE AL BORRAR DB
+            document.getElementById('limpiarBtn').addEventListener('click', () => { 
+                allData = []; 
+                fileNames = []; 
+                localStorage.removeItem('nardo_db_data');
+                localStorage.removeItem('nardo_db_files');
+                actualizarUI(); 
+            });
+            
             document.getElementById('limpiarFiltroBtn').addEventListener('click', () => { document.getElementById('filtroProductoInput').value=''; renderTable(allData); });
 
-            // Comparador (Auditoria) - Ahora incluye CIF/Landed USD
             document.getElementById('compararBtn').addEventListener('click', () => {
                 const search = document.getElementById('compararProductoInput').value;
                 const matches = allData.filter(d => d.producto === search);
@@ -645,7 +665,6 @@
                 resDiv.innerHTML = html + `</tbody></table></div>`;
             });
 
-            // Simulador y Cotizador - Muestra CIF en lugar de FOB
             const btnLimpiarSim = document.getElementById('limpiarSimuladorBtn');
             const btnAgregar = document.getElementById('agregarACotizacionBtn');
             const inputVenta = document.getElementById('precioVentaCotizacion');
@@ -674,7 +693,6 @@
                 const profit = pVenta - costos.landedDOP;
                 ultimaRentabilidad = { producto: row.producto, precioVenta: pVenta, notas: row.notas };
 
-                // Mostrar el Costo CIF (USD) y Landed DOP
                 document.getElementById('resultadosCotizacion').innerHTML = `
                     <div class="col-md-4"><div class="result-box"><span class="label">Costo CIF (USD)</span><div class="value text-primary">$${costos.cifUSD.toFixed(2)}</div></div></div>
                     <div class="col-md-4"><div class="result-box border-danger"><span class="label">Costo Puesto (RD$)</span><div class="value">RD$ ${costos.landedDOP.toLocaleString('en-US',{maximumFractionDigits:2})}</div></div></div>
@@ -732,26 +750,31 @@
                 document.getElementById('totalCotizacion').textContent = `RD$ ${t.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}`;
             }
 
-            // --- EXPORTAR PDF (PLANTILLA NARDO PERFUMS - DORADO) ---
+            // --- 4. CORRECCIÓN DEL ERROR DE JSPDF Y AUTOTABLE ---
             document.getElementById('generarPDFClienteBtn').addEventListener('click', () => {
-                if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF.prototype.autoTable === 'undefined') {
-                    alert('Error: La librería jsPDF o AutoTable no se ha cargado correctamente.');
+                if (typeof window.jspdf === 'undefined') {
+                    alert('Error: La librería jsPDF no se ha cargado correctamente.');
                     return;
                 }
                 
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF('p', 'mm', 'letter');
+                
+                // Verificamos si la función autotable existe en la instancia generada
+                if (typeof doc.autoTable !== 'function') {
+                    alert('Error: La librería AutoTable no se ha cargado correctamente.');
+                    return;
+                }
+
                 const tipoDoc = document.getElementById('tipoDocumento').value;
                 const cliente = document.getElementById('clienteNombre').value;
                 const telefono = document.getElementById('clienteTelefono').value;
                 const fecha = document.getElementById('fechaCotizacion').value;
                 const total = document.getElementById('totalCotizacion').textContent;
 
-                // Colores Corporativos Nardo Perfums
-                const goldColor = [194, 155, 87]; // #C29B57 (Dorado extraído del logo)
+                const goldColor = [194, 155, 87];
                 const textDark = [30, 41, 59];
 
-                // --- HEADER IZQUIERDA (Logo Textual Nardo) ---
                 doc.setFontSize(28);
                 doc.setTextColor(goldColor[0], goldColor[1], goldColor[2]);
                 doc.setFont("helvetica", "bold");
@@ -759,10 +782,8 @@
                 
                 doc.setFontSize(11);
                 doc.setFont("helvetica", "normal");
-                // Espaciado simulado para "perfums"
                 doc.text("p e r f u m s", 16, 31);
                 
-                // --- DIRECCIÓN DE LA OFICINA (Izquierda) ---
                 doc.setFontSize(10);
                 doc.setTextColor(textDark[0], textDark[1], textDark[2]);
                 doc.setFont("helvetica", "bold");
@@ -776,7 +797,6 @@
                 doc.setFont("helvetica", "normal");
                 doc.text("(809) 000-0000", 15, 72);
 
-                // --- HEADER DERECHA (Tipo de Documento) ---
                 doc.setFontSize(24);
                 doc.setTextColor(textDark[0], textDark[1], textDark[2]);
                 doc.setFont("helvetica", "bold");
@@ -786,7 +806,6 @@
                 doc.setFont("helvetica", "italic");
                 doc.text(fecha, 195, 31, { align: "right" });
 
-                // --- FACTURADO A (Derecha) ---
                 doc.setFontSize(10);
                 doc.setFont("helvetica", "bold");
                 doc.text("Para:", 120, 45);
@@ -795,7 +814,6 @@
                 doc.text(doc.splitTextToSize(cliente, 75), 120, 50);
                 if(telefono) doc.text(telefono, 120, 55);
 
-                // --- TABLA DE PRODUCTOS (AutoTable) ---
                 const tableBody = [];
                 document.querySelectorAll('#productosCotizacionBody tr').forEach(tr => {
                     const prod = tr.querySelectorAll('input[type="text"]')[0].value;
@@ -829,22 +847,19 @@
                         fontSize: 9, 
                         cellPadding: 5, 
                         textColor: textDark,
-                        lineColor: [220, 220, 220] // Borde suave gris claro
+                        lineColor: [220, 220, 220]
                     },
-                    alternateRowStyles: { fillColor: [250, 248, 245] }, // Un gris/crema súper ligero
+                    alternateRowStyles: { fillColor: [250, 248, 245] },
                 });
 
-                // --- TOTALES Y NOTAS ---
                 let finalY = doc.lastAutoTable.finalY + 12;
                 
-                // Notas (Izquierda)
                 doc.setFontSize(9);
                 doc.setFont("helvetica", "bold");
                 doc.text("Notas:", 15, finalY);
                 doc.setFont("helvetica", "normal");
                 doc.text("Para cualquier consulta o validación de pagos,\npor favor contacte a nuestro departamento de ventas\na info@nardoperfum.com.", 15, finalY + 6);
 
-                // Caja de Total (Derecha) - Color Dorado
                 doc.setFillColor(goldColor[0], goldColor[1], goldColor[2]);
                 doc.rect(115, finalY - 5, 80, 14, 'F');
                 doc.setTextColor(255, 255, 255);
@@ -853,19 +868,16 @@
                 doc.text("TOTAL GENERAL:", 120, finalY + 4);
                 doc.text(total, 190, finalY + 4, { align: 'right' });
 
-                // --- FOOTER ---
                 finalY = finalY + 35;
                 doc.setTextColor(goldColor[0], goldColor[1], goldColor[2]);
                 doc.setFontSize(12);
                 doc.setFont("helvetica", "bold");
                 doc.text("¡Gracias por preferir nuestros servicios!", 15, finalY);
                 
-                // Línea divisora
                 doc.setDrawColor(textDark[0], textDark[1], textDark[2]);
                 doc.setLineWidth(0.3);
                 doc.line(15, finalY + 4, 195, finalY + 4);
                 
-                // Info Final
                 doc.setFontSize(9);
                 doc.setTextColor(textDark[0], textDark[1], textDark[2]);
                 doc.setFont("helvetica", "normal");
@@ -878,11 +890,9 @@
                 doc.text("www.nardoperfum.com", 195, finalY + 15, { align: "right" });
                 doc.text("Santo Domingo, D.N.", 195, finalY + 20, { align: "right" });
 
-                // Descarga Automática
                 doc.save(`${tipoDoc}_${cliente.replace(/\s+/g, '_')}.pdf`);
             });
 
-            // --- COMPARTIR POR WHATSAPP ---
             document.getElementById('compartirWhatsAppClienteBtn').addEventListener('click', () => {
                 const tipoDoc = document.getElementById('tipoDocumento').value;
                 const cliente = document.getElementById('clienteNombre').value;
@@ -911,12 +921,10 @@
                 window.open(`https://api.whatsapp.com/send?text=${txt}`, '_blank');
             });
 
-            // Theme y Fecha
             document.getElementById('themeToggle').addEventListener('click', () => {
                 const r = document.documentElement;
                 r.setAttribute('data-bs-theme', r.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark');
             });
-            document.getElementById('fechaCotizacion').value = new Date().toISOString().split('T')[0];
 
         })();
     </script>

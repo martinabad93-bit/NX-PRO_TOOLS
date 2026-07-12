@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PrimeTool · Operaciones & Ventas</title>
+    <!-- Google Fonts (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <!-- SheetJS -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <!-- jsPDF & AutoTable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <!-- Bootstrap Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <style>
+        :root {
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-header: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            --text-color: #334155;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --table-stripe: #f8fafc;
+            --table-hover: #f1f5f9;
+            --badge-bg: #2563eb;
+            --result-box-bg: #eff6ff;
+            --result-box-border: #3b82f6;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            --input-bg: #ffffff;
+            --input-border: #cbd5e1;
+            --nav-link-color: #64748b;
+            --accent-color: #2563eb;
+            --accent-hover: #1d4ed8;
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
+        }
+
+        [data-bs-theme="dark"] {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --bg-header: linear-gradient(135deg, #020617 0%, #0f172a 100%);
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --table-stripe: #1e293b;
+            --table-hover: #334155;
+            --badge-bg: #3b82f6;
+            --result-box-bg: #0f172a;
+            --result-box-border: #3b82f6;
+            --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            --input-bg: #0f172a;
+            --input-border: #475569;
+            --nav-link-color: #94a3b8;
+        }
+
+        * { font-family: 'Inter', sans-serif; transition: background-color 0.3s ease, border-color 0.3s ease; }
+        body { background: var(--bg-body); color: var(--text-color); padding: 24px; }
+
+        /* Header & Cards */
+        .app-header { background: var(--bg-card); border-radius: 16px; padding: 20px 30px; margin-bottom: 30px; box-shadow: var(--card-shadow); border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .app-header h1 { font-weight: 700; font-size: 1.75rem; margin: 0; color: var(--text-color); display: flex; align-items: center; gap: 12px; }
+        .app-header h1 i { color: #C29B57; font-size: 1.8rem; } /* Dorado Nardo */
+        
+        .theme-toggle { background: transparent; border: 1px solid var(--border-color); border-radius: 50px; padding: 8px 16px; cursor: pointer; color: var(--text-color); font-weight: 500; font-size: 0.9rem; }
+        .theme-toggle:hover { background: var(--border-color); }
+
+        .card { background: var(--bg-card); border-radius: 16px; box-shadow: var(--card-shadow); border: 1px solid var(--border-color); margin-bottom: 24px; overflow: hidden; }
+        .card-header { background: var(--bg-header); color: #fff; border-radius: 16px 16px 0 0 !important; font-weight: 600; padding: 16px 24px; border-bottom: none; font-size: 1.05rem; }
+        
+        /* Navigation */
+        .nav-tabs { border-bottom: 2px solid var(--border-color); margin-bottom: 24px; }
+        .nav-tabs .nav-link { color: var(--nav-link-color); border: none; padding: 12px 24px; font-weight: 600; background: transparent; border-bottom: 3px solid transparent; transition: all 0.2s; margin-bottom: -2px; }
+        .nav-tabs .nav-link:hover { color: var(--accent-color); }
+        .nav-tabs .nav-link.active { color: var(--accent-color); border-bottom: 3px solid var(--accent-color); background: transparent; }
+
+        /* Tables */
+        .table-container { max-height: 400px; overflow-y: auto; border-radius: 8px; border: 1px solid var(--border-color); }
+        .table { margin-bottom: 0; color: var(--text-color); }
+        .table thead th { position: sticky; top: 0; background: var(--bg-card); border-bottom: 2px solid var(--border-color); z-index: 10; font-weight: 600; font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        .table-striped>tbody>tr:nth-of-type(odd)>* { background-color: var(--table-stripe); color: var(--text-color); }
+        .table-hover>tbody>tr:hover>* { background-color: var(--table-hover); }
+        
+        .badge-proveedor { background: var(--badge-bg); color: #fff; padding: 5px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px; }
+
+        /* Custom Autocomplete Dropdown */
+        .autocomplete-wrapper { position: relative; width: 100%; }
+        .autocomplete-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); max-height: 250px; overflow-y: auto; z-index: 1000; display: none; margin-top: 4px; padding: 8px 0; }
+        .autocomplete-item { padding: 10px 16px; cursor: pointer; color: var(--text-color); font-size: 0.9rem; transition: background 0.2s; border-bottom: 1px solid var(--border-color); }
+        .autocomplete-item:last-child { border-bottom: none; }
+        .autocomplete-item:hover { background: var(--accent-color); color: #fff; }
+
+        /* Inputs & Buttons */
+        .form-control, .form-select { background: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-color); border-radius: 8px; padding: 10px 16px; font-size: 0.95rem; }
+        .form-control:focus, .form-select:focus { background: var(--input-bg); color: var(--text-color); border-color: var(--accent-color); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }
+        .form-label { font-weight: 600; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+
+        .btn { border-radius: 8px; padding: 10px 20px; font-weight: 600; font-size: 0.95rem; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; }
+        .btn-primary { background: var(--accent-color); border: none; color: #fff; }
+        .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
+        
+        /* Result Boxes */
+        .result-box { background: var(--result-box-bg); border-radius: 12px; padding: 20px; border-left: 4px solid var(--result-box-border); height: 100%; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .result-box .label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; }
+        .result-box .value { font-size: 1.5rem; font-weight: 700; color: var(--text-color); margin-top: 8px; }
+        
+        .productos-table td { vertical-align: middle; }
+        .eliminar-fila { background: rgba(239, 68, 68, 0.1); border: none; color: var(--danger-color); height: 32px; width: 32px; border-radius: 6px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; }
+        .eliminar-fila:hover { background: var(--danger-color); color: #fff; }
+    </style>
+</head>
+<body>
+
+    <div class="container-fluid">
+        <header class="app-header">
+            <h1><i class="fas fa-spray-can"></i> Nardo Perfum Tool</h1>
+            <button class="theme-toggle" id="themeToggle">
+                <i class="fas fa-moon"></i> <span id="themeLabel">Modo oscuro</span>
+            </button>
+        </header>
+
+        <ul class="nav nav-tabs nav-fill" id="mainTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="datos-tab" data-bs-toggle="tab" data-bs-target="#datos" type="button"><i class="fas fa-database me-2"></i>Base de Datos</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="costos-tab" data-bs-toggle="tab" data-bs-target="#costos" type="button"><i class="fas fa-ship me-2"></i>Logística & Costos</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="comparador-tab" data-bs-toggle="tab" data-bs-target="#comparador" type="button"><i class="fas fa-balance-scale me-2"></i>Mejor Opción</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="cotizacion-tab" data-bs-toggle="tab" data-bs-target="#cotizacion" type="button"><i class="fas fa-file-invoice-dollar me-2"></i>Documentos</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="mainTabsContent">
+
+            <!-- TAB: BASE DE DATOS -->
+            <div class="tab-pane fade show active" id="datos" role="tabpanel">
+                <div class="card">
+                    <div class="card-header"><i class="fas fa-upload me-2"></i>Cargar Listas de Precios (Excel/CSV)</div>
+                    <div class="card-body">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-6">
+                                <label class="form-label">Archivo</label>
+                                <input type="file" class="form-control" id="fileInput" accept=".xlsx,.xls,.csv" multiple />
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-primary w-100" id="cargarBtn"><i class="fas fa-play"></i> Procesar Data</button>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-outline-danger w-100" id="limpiarBtn"><i class="fas fa-trash-alt"></i> Limpiar DB</button>
+                            </div>
+                        </div>
+                        <div class="mt-3 text-muted small" id="fileList"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-table me-2"></i>Inventario Consolidado</span>
+                        <span class="badge bg-primary rounded-pill" id="totalRegistros">0 registros</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Filtrar tabla:</label>
+                                <div class="autocomplete-wrapper">
+                                    <input type="text" class="form-control" id="filtroProductoInput" placeholder="Busca por nombre..." autocomplete="off">
+                                </div>
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <button class="btn btn-light border" id="limpiarFiltroBtn"><i class="fas fa-times me-2"></i>Restablecer</button>
+                            </div>
+                        </div>
+                        <div class="table-container shadow-sm">
+                            <table class="table table-striped table-hover">
+                                <thead><tr><th>#</th><th>Proveedor</th><th>Producto</th><th>Precio (FOB)</th><th>Notas Olfativas</th></tr></thead>
+                                <tbody id="dataBody"><tr><td colspan="5" class="text-center text-muted py-4">Sube un archivo para comenzar</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: LOGISTICA -->
+            <div class="tab-pane fade" id="costos" role="tabpanel">
+                <div class="card">
+                    <div class="card-header"><i class="fas fa-calculator me-2"></i>Estructura de Costos de Importación</div>
+                    <div class="card-body">
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <div class="p-4 rounded-3 border mb-3" style="background: var(--table-stripe);">
+                                    <h6 class="fw-bold mb-3"><i class="fas fa-box-open text-warning me-2"></i>Modalidad de Importación</h6>
+                                    
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="radio" name="modoImportacion" id="modoComercial" value="comercial" checked>
+                                        <label class="form-check-label fw-medium" for="modoComercial">Carga Comercial (Arancel + ITBIS)</label>
+                                    </div>
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="radio" name="modoImportacion" id="modoExpress" value="express">
+                                        <label class="form-check-label fw-medium" for="modoExpress">Carga Menor / Express (Costo Fijo USD)</label>
+                                    </div>
+
+                                    <!-- Panel Comercial -->
+                                    <div id="panelComercial">
+                                        <div class="mb-3">
+                                            <label class="form-label">Flete Est. Comercial (USD / Unid.)</label>
+                                            <input type="number" class="form-control" id="costoFleteUnitario" value="3.50" step="0.5" />
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-6 mb-3">
+                                                <label class="form-label">Arancel (%)</label>
+                                                <input type="number" class="form-control" id="porcentajeArancel" value="20" />
+                                            </div>
+                                            <div class="col-6 mb-3">
+                                                <label class="form-label">ITBIS (%)</label>
+                                                <input type="number" class="form-control" id="porcentajeItbis" value="18" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Panel Express -->
+                                    <div id="panelExpress" style="display:none;">
+                                        <div class="mb-3">
+                                            <label class="form-label">Costo Fijo Express Consolidado (USD / Unid.)</label>
+                                            <input type="number" class="form-control" id="costoFijoExpress" value="15.00" step="1" />
+                                            <small class="text-muted">Aplica a envíos courier personales sin desglose aduanal.</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-4 rounded-3 border" style="background: var(--table-stripe);">
+                                    <h6 class="fw-bold mb-3"><i class="fas fa-chart-line text-success me-2"></i>Financiero</h6>
+                                    <div class="mb-3">
+                                        <label class="form-label">Tasa del Dólar (DOP)</label>
+                                        <input type="number" class="form-control" id="tipoCambioGlobal" value="59.50" step="0.1" />
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Margen de Ganancia (%)</label>
+                                        <input type="number" class="form-control" id="margenGanancia" value="30" />
+                                    </div>
+                                    <div class="form-check form-switch mt-4">
+                                        <input class="form-check-input" type="checkbox" id="incluirCostosFijosEnComparador" checked />
+                                        <label class="form-check-label fw-medium" for="incluirCostosFijosEnComparador">Aplicar logística en auditoría de precios</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: COMPARADOR -->
+            <div class="tab-pane fade" id="comparador" role="tabpanel">
+                <div class="card">
+                    <div class="card-header"><i class="fas fa-trophy me-2"></i>Auditoría de Proveedores</div>
+                    <div class="card-body">
+                        <div class="row g-3 align-items-end mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label">Seleccionar Producto:</label>
+                                <div class="autocomplete-wrapper">
+                                    <input type="text" class="form-control" id="compararProductoInput" placeholder="Ej: Bleu de Chanel..." autocomplete="off">
+                                    <div id="compararDropdown" class="autocomplete-dropdown"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-primary w-100" id="compararBtn"><i class="fas fa-search me-2"></i>Auditar</button>
+                            </div>
+                        </div>
+                        <div id="comparativaResultado">
+                            <div class="alert alert-light border text-muted"><i class="fas fa-info-circle me-2"></i>Busca un producto para comparar quién ofrece el mejor costo consolidado.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: COTIZACION -->
+            <div class="tab-pane fade" id="cotizacion" role="tabpanel">
+                <div class="card">
+                    <div class="card-header"><i class="fas fa-file-signature me-2"></i>Emisión de Documentos</div>
+                    <div class="card-body">
+                        
+                        <div class="p-4 border rounded-3 mb-4" style="background: var(--table-stripe);">
+                            <h6 class="fw-bold mb-3"><i class="fas fa-microscope text-primary me-2"></i>Simulador de Rentabilidad por Item</h6>
+                            
+                            <div class="row g-3 align-items-end">
+                                <div class="col-md-3">
+                                    <label class="form-label">Producto</label>
+                                    <div class="autocomplete-wrapper">
+                                        <input type="text" class="form-control" id="cotizarProductoInput" placeholder="Buscar artículo..." autocomplete="off">
+                                        <div id="cotizarDropdown" class="autocomplete-dropdown"></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Proveedor</label>
+                                    <select class="form-select" id="cotizarProveedor"><option value="">-- Selecciona --</option></select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Costo FOB ($) <i class="fas fa-pencil-alt ms-1 text-primary" style="font-size:0.75rem;" title="Editable"></i></label>
+                                    <input type="number" class="form-control fw-bold" style="color: var(--accent-color);" id="costoFobCotizacion" step="0.01" placeholder="0.00" />
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Venta (RD$)</label>
+                                    <input type="number" class="form-control" id="precioVentaCotizacion" placeholder="Auto..." />
+                                </div>
+                                <div class="col-md-2">
+                                    <button class="btn btn-success w-100" id="calcularCotizacionBtn"><i class="fas fa-bolt me-2"></i>Calcular</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Cajas de Resultado Mejoradas -->
+                            <div class="row g-3 mt-3" id="resultadosCotizacion"></div>
+                            
+                            <div class="mt-3 d-flex justify-content-end gap-2">
+                                <button class="btn btn-outline-secondary" id="limpiarSimuladorBtn" style="display:none;"><i class="fas fa-eraser me-2"></i>Limpiar Campos</button>
+                                <button class="btn btn-primary" id="agregarACotizacionBtn" style="display:none;"><i class="fas fa-arrow-down me-2"></i>Bajar a Documento</button>
+                            </div>
+                        </div>
+
+                        <!-- Datos del Documento -->
+                        <div class="row g-3 mb-4 align-items-end">
+                            <div class="col-md-3">
+                                <label class="form-label">Tipo Documento</label>
+                                <select class="form-select fw-bold text-primary" id="tipoDocumento">
+                                    <option value="COTIZACIÓN">Cotización</option>
+                                    <option value="FACTURA">Factura</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Cliente</label>
+                                <input type="text" class="form-control fw-medium" id="clienteNombre" value="CLIENTE CORPORATIVO" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Teléfono</label>
+                                <input type="text" class="form-control" id="clienteTelefono" placeholder="Opcional..." />
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Fecha</label>
+                                <input type="date" class="form-control" id="fechaCotizacion" />
+                            </div>
+                        </div>
+
+                        <div class="table-responsive rounded-3 border">
+                            <table class="table productos-table mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width:25%">Artículo</th>
+                                        <th style="width:30%">Descripción / Notas</th>
+                                        <th style="width:10%" class="text-center">Cant.</th>
+                                        <th style="width:15%" class="text-end">Precio (RD$)</th>
+                                        <th style="width:15%" class="text-end">Subtotal</th>
+                                        <th style="width:5%"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="productosCotizacionBody"></tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="6" class="border-0 pt-3">
+                                            <button class="btn btn-light border btn-sm" id="agregarFilaProducto"><i class="fas fa-plus me-2"></i>Añadir fila manual</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="4" class="text-end fw-bold fs-5 border-0">TOTAL:</td>
+                                        <td class="fw-bold fs-4 text-success text-end border-0" id="totalCotizacion">RD$ 0.00</td>
+                                        <td class="border-0"></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-3 mt-4">
+                            <button class="btn btn-outline-danger" id="generarPDFClienteBtn"><i class="fas fa-file-pdf me-2"></i>Exportar PDF (Plantilla Nardo)</button>
+                            <button class="btn" style="background:#25D366; color:white;" id="compartirWhatsAppClienteBtn"><i class="fab fa-whatsapp me-2"></i>Enviar al Cliente</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            let allData = [];
+            let fileNames = [];
+            let ultimaRentabilidad = null;
+
+            const COL_MAP = {
+                proveedor: ['proveedor', 'supplier', 'vendedor'],
+                producto: ['producto', 'perfume', 'modelo', 'nombre', 'product', 'item'],
+                precio: ['precio', 'price', 'costo', 'unit price', 'valor'],
+                notas: ['notas', 'descripcion', 'description', 'notes', 'olfativas', 'fragrance']
+            };
+
+            function normalizeText(str) {
+                if (!str) return '';
+                return String(str).trim().toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+            }
+
+            function detectColumnName(header) {
+                const h = header.toLowerCase().trim();
+                for (let key in COL_MAP) {
+                    if (COL_MAP[key].some(s => h.includes(s) || s.includes(h))) return key;
+                }
+                return null;
+            }
+
+            function normalizeRow(row, headers) {
+                let obj = { notas: '' };
+                headers.forEach((h, idx) => {
+                    const val = row[idx] !== undefined ? row[idx] : '';
+                    const colType = detectColumnName(h);
+                    
+                    if (colType === 'proveedor') obj.proveedor = normalizeText(val);
+                    else if (colType === 'producto') obj.producto = normalizeText(val);
+                    else if (colType === 'precio') {
+                        let num = parseFloat(String(val).replace(',', '.').trim());
+                        obj.precio = isNaN(num) ? 0 : num;
+                    } 
+                    else if (colType === 'notas') obj.notas = String(val).trim();
+                });
+                if (!obj.proveedor || !obj.producto) return null;
+                return obj;
+            }
+
+            async function cargarArchivos() {
+                const files = document.getElementById('fileInput').files;
+                if (!files.length) return;
+                
+                let allNewData = [];
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    try {
+                        const data = await new Promise((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                                try {
+                                    const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: '' });
+                                    if (json.length < 2) return resolve([]);
+                                    const headers = json[0].map(h => String(h).trim());
+                                    resolve(json.slice(1).map(r => normalizeRow(r, headers)).filter(Boolean));
+                                } catch (err) { reject(err); }
+                            };
+                            reader.readAsArrayBuffer(file);
+                        });
+                        allNewData = allNewData.concat(data);
+                        fileNames.push(file.name);
+                    } catch (err) { console.error(err); }
+                }
+                
+                if(allNewData.length > 0){
+                    allData = allData.concat(allNewData);
+                    actualizarUI();
+                    document.getElementById('fileInput').value = '';
+                }
+            }
+
+            function actualizarUI() {
+                renderTable(allData);
+                document.getElementById('totalRegistros').textContent = allData.length + ' registros';
+                document.getElementById('fileList').innerHTML = fileNames.map(n => `<span class="badge bg-secondary me-1">${n}</span>`).join('');
+            }
+
+            function renderTable(data) {
+                const tbody = document.getElementById('dataBody');
+                if (!data.length) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No hay datos</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = data.map((row, idx) => `<tr>
+                    <td>${idx + 1}</td>
+                    <td><span class="badge-proveedor">${row.proveedor}</span></td>
+                    <td class="fw-bold">${row.producto}</td>
+                    <td class="text-success fw-medium">$${row.precio.toFixed(2)}</td>
+                    <td><small class="text-muted">${row.notas || '-'}</small></td>
+                </tr>`).join('');
+            }
+
+            function setupAutocomplete(inputId, dropdownId, onSelect) {
+                const input = document.getElementById(inputId);
+                const dropdown = document.getElementById(dropdownId);
+                if(!dropdown) return;
+
+                input.addEventListener('input', function() {
+                    const val = this.value.toLowerCase().trim();
+                    dropdown.innerHTML = '';
+                    
+                    if (!val) {
+                        dropdown.style.display = 'none';
+                        if(inputId === 'filtroProductoInput') renderTable(allData);
+                        return;
+                    }
+                    
+                    const productosUnicos = [...new Set(allData.map(d => d.producto))].filter(Boolean);
+                    const matches = productosUnicos.filter(p => p.toLowerCase().includes(val)).sort();
+
+                    if (matches.length > 0) {
+                        matches.forEach(match => {
+                            const div = document.createElement('div');
+                            div.className = 'autocomplete-item';
+                            div.textContent = match;
+                            div.addEventListener('click', function() {
+                                input.value = match;
+                                dropdown.style.display = 'none';
+                                if(onSelect) onSelect(match);
+                            });
+                            dropdown.appendChild(div);
+                        });
+                        dropdown.style.display = 'block';
+                    } else {
+                        dropdown.style.display = 'none';
+                    }
+                    
+                    if(inputId === 'filtroProductoInput') {
+                        renderTable(allData.filter(d => d.producto.toLowerCase().includes(val)));
+                    }
+                });
+
+                document.addEventListener('click', function(e) {
+                    if (e.target !== input && e.target !== dropdown) dropdown.style.display = 'none';
+                });
+            }
+
+            setupAutocomplete('filtroProductoInput', null, (val) => renderTable(allData.filter(d => d.producto === val)));
+            setupAutocomplete('compararProductoInput', 'compararDropdown');
+            
+            setupAutocomplete('cotizarProductoInput', 'cotizarDropdown', (prod) => {
+                const provSelect = document.getElementById('cotizarProveedor');
+                provSelect.innerHTML = '';
+                const provs = [...new Set(allData.filter(d => d.producto === prod).map(d => d.proveedor))];
+                provs.forEach(p => provSelect.add(new Option(p, p)));
+                
+                if(provs.length > 0) {
+                    const row = allData.find(d => d.producto === prod && d.proveedor === provs[0]);
+                    if(row) document.getElementById('costoFobCotizacion').value = row.precio.toFixed(2);
+                }
+            });
+
+            document.getElementById('cotizarProveedor').addEventListener('change', (e) => {
+                const prod = document.getElementById('cotizarProductoInput').value;
+                const prov = e.target.value;
+                const row = allData.find(d => d.producto === prod && d.proveedor === prov);
+                if(row) document.getElementById('costoFobCotizacion').value = row.precio.toFixed(2);
+            });
+
+            // Toggles Modalidad de Logística
+            const rbComercial = document.getElementById('modoComercial');
+            const rbExpress = document.getElementById('modoExpress');
+            const pnlComercial = document.getElementById('panelComercial');
+            const pnlExpress = document.getElementById('panelExpress');
+
+            rbComercial.addEventListener('change', () => { pnlComercial.style.display = 'block'; pnlExpress.style.display = 'none'; });
+            rbExpress.addEventListener('change', () => { pnlComercial.style.display = 'none'; pnlExpress.style.display = 'block'; });
+
+            function getLogs() {
+                return {
+                    modo: rbComercial.checked ? 'comercial' : 'express',
+                    flete: parseFloat(document.getElementById('costoFleteUnitario').value) || 0,
+                    arancel: (parseFloat(document.getElementById('porcentajeArancel').value) || 0) / 100,
+                    itbis: (parseFloat(document.getElementById('porcentajeItbis').value) || 0) / 100,
+                    fleteFixo: parseFloat(document.getElementById('costoFijoExpress').value) || 0,
+                    tc: parseFloat(document.getElementById('tipoCambioGlobal').value) || 59.50,
+                    margen: (parseFloat(document.getElementById('margenGanancia').value) || 30) / 100,
+                    usarLogistica: document.getElementById('incluirCostosFijosEnComparador').checked
+                };
+            }
+
+            // Motor de Cálculo Unificado (Calcula CIF USD, Landed USD y Landed DOP)
+            function calcCostos(precioFOB, logs) {
+                let cifUSD = 0;
+                let landedUSD = 0;
+
+                if (!logs.usarLogistica) {
+                    return { fob: precioFOB, cifUSD: precioFOB, landedUSD: precioFOB, landedDOP: precioFOB * logs.tc };
+                }
+
+                if(logs.modo === 'express') {
+                    cifUSD = precioFOB + logs.fleteFixo;
+                    landedUSD = cifUSD; // En express, asumimos que el costo fijo lo cubre todo hasta la puerta
+                } else {
+                    cifUSD = precioFOB + logs.flete;
+                    const impArancel = cifUSD * logs.arancel;
+                    const impItbis = (cifUSD + impArancel) * logs.itbis;
+                    landedUSD = cifUSD + impArancel + impItbis;
+                }
+
+                return {
+                    fob: precioFOB,
+                    cifUSD: cifUSD,
+                    landedUSD: landedUSD,
+                    landedDOP: landedUSD * logs.tc
+                };
+            }
+
+            document.getElementById('cargarBtn').addEventListener('click', cargarArchivos);
+            document.getElementById('limpiarBtn').addEventListener('click', () => { allData=[]; fileNames=[]; actualizarUI(); });
+            document.getElementById('limpiarFiltroBtn').addEventListener('click', () => { document.getElementById('filtroProductoInput').value=''; renderTable(allData); });
+
+            // Comparador (Auditoria) - Ahora incluye CIF/Landed USD
+            document.getElementById('compararBtn').addEventListener('click', () => {
+                const search = document.getElementById('compararProductoInput').value;
+                const matches = allData.filter(d => d.producto === search);
+                const resDiv = document.getElementById('comparativaResultado');
+                
+                if(!matches.length) {
+                    resDiv.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>Producto no encontrado. Asegúrate de seleccionarlo de la lista.</div>';
+                    return;
+                }
+
+                const logs = getLogs();
+                let results = matches.map(m => {
+                    const costos = calcCostos(m.precio, logs);
+                    return { ...m, ...costos };
+                }).sort((a,b) => a.landedDOP - b.landedDOP);
+
+                let html = `<div class="table-responsive rounded border"><table class="table table-hover mb-0">
+                    <thead class="table-light"><tr><th>Proveedor</th><th>FOB Oficial</th><th>CIF / Landed (USD)</th><th>Landed Cost (RD$)</th></tr></thead><tbody>`;
+                results.forEach((r, i) => {
+                    html += `<tr class="${i===0 ? 'table-success fw-bold' : ''}">
+                        <td>${r.proveedor} ${i===0 ? '<i class="fas fa-star text-warning ms-1"></i>' : ''}</td>
+                        <td>$${r.fob.toFixed(2)}</td>
+                        <td class="text-primary fw-medium">$${r.landedUSD.toFixed(2)}</td>
+                        <td class="fs-5 text-success">RD$ ${r.landedDOP.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                    </tr>`;
+                });
+                resDiv.innerHTML = html + `</tbody></table></div>`;
+            });
+
+            // Simulador y Cotizador - Muestra CIF en lugar de FOB
+            const btnLimpiarSim = document.getElementById('limpiarSimuladorBtn');
+            const btnAgregar = document.getElementById('agregarACotizacionBtn');
+            const inputVenta = document.getElementById('precioVentaCotizacion');
+            const inputFob = document.getElementById('costoFobCotizacion');
+
+            document.getElementById('calcularCotizacionBtn').addEventListener('click', () => {
+                const prod = document.getElementById('cotizarProductoInput').value;
+                const prov = document.getElementById('cotizarProveedor').value;
+                
+                const precioFOB = parseFloat(inputFob.value) || 0;
+                if(precioFOB === 0 || !prod) {
+                    alert('Debes seleccionar un producto y asegurarte que el Costo FOB sea mayor a 0.');
+                    return;
+                }
+
+                const row = allData.find(d => d.producto === prod && d.proveedor === prov) || { producto: prod, notas: '' };
+                const logs = getLogs();
+                const costos = calcCostos(precioFOB, logs);
+                
+                let pVenta = parseFloat(inputVenta.value);
+                if(isNaN(pVenta) || pVenta === 0) {
+                    pVenta = costos.landedDOP / (1 - logs.margen);
+                    inputVenta.value = pVenta.toFixed(0);
+                }
+
+                const profit = pVenta - costos.landedDOP;
+                ultimaRentabilidad = { producto: row.producto, precioVenta: pVenta, notas: row.notas };
+
+                // Mostrar el Costo CIF (USD) y Landed DOP
+                document.getElementById('resultadosCotizacion').innerHTML = `
+                    <div class="col-md-4"><div class="result-box"><span class="label">Costo CIF (USD)</span><div class="value text-primary">$${costos.cifUSD.toFixed(2)}</div></div></div>
+                    <div class="col-md-4"><div class="result-box border-danger"><span class="label">Costo Puesto (RD$)</span><div class="value">RD$ ${costos.landedDOP.toLocaleString('en-US',{maximumFractionDigits:2})}</div></div></div>
+                    <div class="col-md-4"><div class="result-box" style="border-left-color: #10b981;"><span class="label">Ganancia Neta</span><div class="value text-success">RD$ ${profit.toLocaleString('en-US',{maximumFractionDigits:2})}</div></div></div>
+                `;
+                btnLimpiarSim.style.display = 'inline-flex';
+                btnAgregar.style.display = 'inline-flex';
+            });
+
+            btnLimpiarSim.addEventListener('click', () => {
+                document.getElementById('cotizarProductoInput').value = '';
+                document.getElementById('cotizarProveedor').innerHTML = '<option value="">-- Selecciona --</option>';
+                inputFob.value = '';
+                inputVenta.value = '';
+                document.getElementById('resultadosCotizacion').innerHTML = '';
+                btnLimpiarSim.style.display = 'none';
+                btnAgregar.style.display = 'none';
+                ultimaRentabilidad = null;
+            });
+
+            btnAgregar.addEventListener('click', () => {
+                if(!ultimaRentabilidad) return;
+                addFila(ultimaRentabilidad.producto, ultimaRentabilidad.notas, 1, ultimaRentabilidad.precioVenta);
+                btnLimpiarSim.click(); 
+            });
+
+            document.getElementById('agregarFilaProducto').addEventListener('click', () => addFila());
+
+            function addFila(prod='', notas='', cant=1, precio=0) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><input type="text" class="form-control fw-medium" placeholder="Artículo..." value="${prod}"></td>
+                    <td><input type="text" class="form-control text-muted" placeholder="Notas adicionales..." value="${notas}"></td>
+                    <td><input type="number" class="form-control cantidad text-center" value="${cant}" min="1"></td>
+                    <td><input type="number" class="form-control precio-unit text-end" value="${precio.toFixed(2)}"></td>
+                    <td class="text-end fw-bold align-middle subtotal-val">0.00</td>
+                    <td class="text-center align-middle"><button class="eliminar-fila"><i class="fas fa-times"></i></button></td>
+                `;
+                document.getElementById('productosCotizacionBody').appendChild(tr);
+                
+                const updateSub = () => {
+                    const s = (parseFloat(tr.querySelector('.cantidad').value)||0) * (parseFloat(tr.querySelector('.precio-unit').value)||0);
+                    tr.querySelector('.subtotal-val').textContent = s.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+                    recalcTotal();
+                };
+                tr.querySelector('.cantidad').addEventListener('input', updateSub);
+                tr.querySelector('.precio-unit').addEventListener('input', updateSub);
+                tr.querySelector('.eliminar-fila').addEventListener('click', () => { tr.remove(); recalcTotal(); });
+                updateSub();
+            }
+
+            function recalcTotal() {
+                let t = 0;
+                document.querySelectorAll('.subtotal-val').forEach(el => t += parseFloat(el.textContent.replace(/,/g, '')) || 0);
+                document.getElementById('totalCotizacion').textContent = `RD$ ${t.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+            }
+
+            // --- EXPORTAR PDF (PLANTILLA NARDO PERFUMS - DORADO) ---
+            document.getElementById('generarPDFClienteBtn').addEventListener('click', () => {
+                if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF.prototype.autoTable === 'undefined') {
+                    alert('Error: La librería jsPDF o AutoTable no se ha cargado correctamente.');
+                    return;
+                }
+                
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('p', 'mm', 'letter');
+                const tipoDoc = document.getElementById('tipoDocumento').value;
+                const cliente = document.getElementById('clienteNombre').value;
+                const telefono = document.getElementById('clienteTelefono').value;
+                const fecha = document.getElementById('fechaCotizacion').value;
+                const total = document.getElementById('totalCotizacion').textContent;
+
+                // Colores Corporativos Nardo Perfums
+                const goldColor = [194, 155, 87]; // #C29B57 (Dorado extraído del logo)
+                const textDark = [30, 41, 59];
+
+                // --- HEADER IZQUIERDA (Logo Textual Nardo) ---
+                doc.setFontSize(28);
+                doc.setTextColor(goldColor[0], goldColor[1], goldColor[2]);
+                doc.setFont("helvetica", "bold");
+                doc.text("NARDO", 15, 25);
+                
+                doc.setFontSize(11);
+                doc.setFont("helvetica", "normal");
+                // Espaciado simulado para "perfums"
+                doc.text("p e r f u m s", 16, 31);
+                
+                // --- DIRECCIÓN DE LA OFICINA (Izquierda) ---
+                doc.setFontSize(10);
+                doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+                doc.setFont("helvetica", "bold");
+                doc.text("Dirección Principal", 15, 45);
+                doc.setFont("helvetica", "normal");
+                doc.text("B2b Dominicana Srl", 15, 50);
+                doc.text("Santo Domingo, Distrito Nacional", 15, 55); 
+                doc.text("República Dominicana", 15, 60);
+                doc.setFont("helvetica", "bold");
+                doc.text("Teléfono", 15, 67);
+                doc.setFont("helvetica", "normal");
+                doc.text("(809) 000-0000", 15, 72);
+
+                // --- HEADER DERECHA (Tipo de Documento) ---
+                doc.setFontSize(24);
+                doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+                doc.setFont("helvetica", "bold");
+                doc.text(tipoDoc.toUpperCase(), 195, 25, { align: "right" });
+                
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "italic");
+                doc.text(fecha, 195, 31, { align: "right" });
+
+                // --- FACTURADO A (Derecha) ---
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "bold");
+                doc.text("Para:", 120, 45);
+                
+                doc.setFont("helvetica", "normal");
+                doc.text(doc.splitTextToSize(cliente, 75), 120, 50);
+                if(telefono) doc.text(telefono, 120, 55);
+
+                // --- TABLA DE PRODUCTOS (AutoTable) ---
+                const tableBody = [];
+                document.querySelectorAll('#productosCotizacionBody tr').forEach(tr => {
+                    const prod = tr.querySelectorAll('input[type="text"]')[0].value;
+                    const notas = tr.querySelectorAll('input[type="text"]')[1].value;
+                    const cant = tr.querySelector('.cantidad').value;
+                    const pu = `RD$ ${parseFloat(tr.querySelector('.precio-unit').value).toLocaleString('en-US', {minimumFractionDigits:2})}`;
+                    const sub = `RD$ ${tr.querySelector('.subtotal-val').textContent}`;
+                    
+                    const descFormatted = notas ? `${prod}\n• ${notas}` : prod;
+                    tableBody.push([descFormatted, cant, pu, sub]);
+                });
+
+                doc.autoTable({
+                    startY: 85,
+                    head: [['Descripción del Producto', 'Cant.', 'Precio Unit.', 'Total']],
+                    body: tableBody,
+                    theme: 'grid',
+                    headStyles: { 
+                        fillColor: goldColor, 
+                        textColor: [255, 255, 255], 
+                        fontStyle: 'bold', 
+                        halign: 'left' 
+                    },
+                    columnStyles: {
+                        0: { cellWidth: 90 },
+                        1: { halign: 'center', cellWidth: 20 },
+                        2: { halign: 'right' },
+                        3: { halign: 'right', fontStyle: 'bold' }
+                    },
+                    styles: { 
+                        fontSize: 9, 
+                        cellPadding: 5, 
+                        textColor: textDark,
+                        lineColor: [220, 220, 220] // Borde suave gris claro
+                    },
+                    alternateRowStyles: { fillColor: [250, 248, 245] }, // Un gris/crema súper ligero
+                });
+
+                // --- TOTALES Y NOTAS ---
+                let finalY = doc.lastAutoTable.finalY + 12;
+                
+                // Notas (Izquierda)
+                doc.setFontSize(9);
+                doc.setFont("helvetica", "bold");
+                doc.text("Notas:", 15, finalY);
+                doc.setFont("helvetica", "normal");
+                doc.text("Para cualquier consulta o validación de pagos,\npor favor contacte a nuestro departamento de ventas\na info@nardoperfum.com.", 15, finalY + 6);
+
+                // Caja de Total (Derecha) - Color Dorado
+                doc.setFillColor(goldColor[0], goldColor[1], goldColor[2]);
+                doc.rect(115, finalY - 5, 80, 14, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(11);
+                doc.setFont("helvetica", "bold");
+                doc.text("TOTAL GENERAL:", 120, finalY + 4);
+                doc.text(total, 190, finalY + 4, { align: 'right' });
+
+                // --- FOOTER ---
+                finalY = finalY + 35;
+                doc.setTextColor(goldColor[0], goldColor[1], goldColor[2]);
+                doc.setFontSize(12);
+                doc.setFont("helvetica", "bold");
+                doc.text("¡Gracias por preferir nuestros servicios!", 15, finalY);
+                
+                // Línea divisora
+                doc.setDrawColor(textDark[0], textDark[1], textDark[2]);
+                doc.setLineWidth(0.3);
+                doc.line(15, finalY + 4, 195, finalY + 4);
+                
+                // Info Final
+                doc.setFontSize(9);
+                doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+                doc.setFont("helvetica", "normal");
+                
+                doc.text("B2b Dominicana Srl", 15, finalY + 10);
+                doc.text("RNC: (Por definir)", 15, finalY + 15);
+                doc.text("Nardo Perfum", 15, finalY + 20);
+
+                doc.text("Tel: (809) 000-0000", 195, finalY + 10, { align: "right" });
+                doc.text("www.nardoperfum.com", 195, finalY + 15, { align: "right" });
+                doc.text("Santo Domingo, D.N.", 195, finalY + 20, { align: "right" });
+
+                // Descarga Automática
+                doc.save(`${tipoDoc}_${cliente.replace(/\s+/g, '_')}.pdf`);
+            });
+
+            // --- COMPARTIR POR WHATSAPP ---
+            document.getElementById('compartirWhatsAppClienteBtn').addEventListener('click', () => {
+                const tipoDoc = document.getElementById('tipoDocumento').value;
+                const cliente = document.getElementById('clienteNombre').value;
+                const total = document.getElementById('totalCotizacion').textContent;
+                
+                let txt = `📑 *${tipoDoc} - NARDO PERFUM* 📑%0A`;
+                txt += `👤 *Cliente:* ${cliente}%0A`;
+                txt += `📅 *Fecha:* ${document.getElementById('fechaCotizacion').value}%0A`;
+                txt += `━━━━━━━━━━━━━━━━━━━━%0A%0A`;
+
+                document.querySelectorAll('#productosCotizacionBody tr').forEach(tr => {
+                    const prod = tr.querySelectorAll('input[type="text"]')[0].value;
+                    const notas = tr.querySelectorAll('input[type="text"]')[1].value;
+                    const cant = tr.querySelector('.cantidad').value;
+                    const sub = tr.querySelector('.subtotal-val').textContent;
+
+                    txt += `📦 *${cant}x ${prod}*%0A`;
+                    if(notas) txt += `   _📝 ${notas}_%0A`;
+                    txt += `   💵 Subtotal: RD$ ${sub}%0A%0A`;
+                });
+
+                txt += `━━━━━━━━━━━━━━━━━━━━%0A`;
+                txt += `💰 *TOTAL A PAGAR: ${total}*%0A%0A`;
+                txt += `¡Quedamos a su entera disposición ante cualquier duda!%0A_by B2b Dominicana Srl_`;
+
+                window.open(`https://api.whatsapp.com/send?text=${txt}`, '_blank');
+            });
+
+            // Theme y Fecha
+            document.getElementById('themeToggle').addEventListener('click', () => {
+                const r = document.documentElement;
+                r.setAttribute('data-bs-theme', r.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark');
+            });
+            document.getElementById('fechaCotizacion').value = new Date().toISOString().split('T')[0];
+
+        })();
+    </script>
+</body>
+</html>
